@@ -1,3 +1,12 @@
+local SCRIPT_URL = "https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"
+
+-- Re-queue for the next teleport
+if queue_on_teleport then
+    queue_on_teleport([[
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"))()
+    ]])
+end
+
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 
