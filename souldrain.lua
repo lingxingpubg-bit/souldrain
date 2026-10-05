@@ -267,3 +267,109 @@ task.spawn(function()
 		end
 	end
 end)
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+
+--// SETTINGS
+local TargetName = "ANiceUser52"
+local TeleportEnabled = false
+local TeleportInterval = 0.02
+
+--// GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TeleportGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 180, 0, 115)
+Frame.Position = UDim2.new(0.02, 0, 0.25, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BorderSizePixel = 0
+Frame.Parent = ScreenGui
+
+--// KEYBIND LABEL
+local KeybindLabel = Instance.new("TextLabel")
+KeybindLabel.Size = UDim2.new(1, 0, 0, 25)
+KeybindLabel.BackgroundTransparency = 1
+KeybindLabel.Text = "Keybind: G"
+KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeybindLabel.TextSize = 14
+KeybindLabel.Font = Enum.Font.SourceSansBold
+KeybindLabel.Parent = Frame
+
+--// ON/OFF BUTTON
+local Toggle = Instance.new("TextButton")
+Toggle.Size = UDim2.new(1, -20, 0, 35)
+Toggle.Position = UDim2.new(0, 10, 0, 30)
+Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+Toggle.TextSize = 15
+Toggle.Font = Enum.Font.SourceSansBold
+Toggle.Parent = Frame
+
+local function UpdateToggle()
+	if TeleportEnabled then
+		Toggle.Text = "ON"
+		Toggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
+	else
+		Toggle.Text = "OFF"
+		Toggle.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+	end
+end
+
+local function ToggleTeleport()
+	TeleportEnabled = not TeleportEnabled
+	UpdateToggle()
+end
+
+Toggle.MouseButton1Click:Connect(ToggleTeleport)
+
+UpdateToggle()
+
+--// INTERVAL LABEL
+local IntervalLabel = Instance.new("TextLabel")
+IntervalLabel.Size = UDim2.new(1, 0, 0, 30)
+IntervalLabel.Position = UDim2.new(0, 0, 0, 75)
+IntervalLabel.BackgroundTransparency = 1
+IntervalLabel.Text = "Teleport Interval: 0.1s"
+IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+IntervalLabel.TextSize = 13
+IntervalLabel.Font = Enum.Font.SourceSans
+IntervalLabel.Parent = Frame
+
+--// G KEYBIND
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.G then
+		ToggleTeleport()
+	end
+end)
+
+--// TELEPORT LOOP
+task.spawn(function()
+	while task.wait(TeleportInterval) do
+
+		if TeleportEnabled then
+			local Target = Players:FindFirstChild(TargetName)
+
+			if Target and Target.Character then
+				local TargetRoot =
+					Target.Character:FindFirstChild("HumanoidRootPart")
+
+				local MyCharacter = LocalPlayer.Character
+				local MyRoot =
+					MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
+
+				if TargetRoot and MyRoot then
+					MyRoot.CFrame = TargetRoot.CFrame
+				end
+			end
+		end
+	end
+end)
