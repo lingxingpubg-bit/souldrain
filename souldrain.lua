@@ -203,96 +203,43 @@ end)
 updateTriggerMode()
 
 --==================================================
--- Q → E SLIDER
+-- Q → E EDITABLE INPUT
 --==================================================
 
-local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Size = UDim2.new(1, -10, 0, 20)
-SliderLabel.Position = UDim2.new(0, 5, 0, 136)
-SliderLabel.BackgroundTransparency = 1
-SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-SliderLabel.TextSize = 13
-SliderLabel.Font = Enum.Font.SourceSans
-SliderLabel.Parent = MainFrame
+local DelayLabel = Instance.new("TextLabel")
+DelayLabel.Size = UDim2.new(0.55, -5, 0, 25)
+DelayLabel.Position = UDim2.new(0, 5, 0, 136)
+DelayLabel.BackgroundTransparency = 1
+DelayLabel.Text = "Q → E Delay:"
+DelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+DelayLabel.TextSize = 13
+DelayLabel.Font = Enum.Font.SourceSans
+DelayLabel.TextXAlignment = Enum.TextXAlignment.Left
+DelayLabel.Parent = MainFrame
 
-local function updateSliderText()
-	SliderLabel.Text = "Q → E: " .. Q_E_Delay .. "s"
-end
+local DelayInput = Instance.new("TextBox")
+DelayInput.Size = UDim2.new(0.45, -10, 0, 25)
+DelayInput.Position = UDim2.new(0.55, 5, 0, 136)
+DelayInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+DelayInput.BorderSizePixel = 0
+DelayInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+DelayInput.TextSize = 13
+DelayInput.Font = Enum.Font.SourceSans
+DelayInput.Text = tostring(Q_E_Delay)
+DelayInput.ClearTextOnFocus = false
+DelayInput.TextXAlignment = Enum.TextXAlignment.Center
+DelayInput.Parent = MainFrame
 
-updateSliderText()
+DelayInput.FocusLost:Connect(function()
+	local value = tonumber(DelayInput.Text)
 
-local SliderBar = Instance.new("Frame")
-SliderBar.Size = UDim2.new(1, -20, 0, 8)
-SliderBar.Position = UDim2.new(0, 10, 0, 162)
-SliderBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-SliderBar.BorderSizePixel = 0
-SliderBar.Parent = MainFrame
-
-local SliderButton = Instance.new("TextButton")
-SliderButton.Size = UDim2.new(0, 14, 0, 20)
-SliderButton.AnchorPoint = Vector2.new(0.5, 0.5)
-SliderButton.Position = UDim2.new(0, 0, 0.5, 0)
-SliderButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-SliderButton.Text = ""
-SliderButton.BorderSizePixel = 0
-SliderButton.Parent = SliderBar
-
-local sliderDragging = false
-
-local function setSliderFromX(x)
-	local relativeX = math.clamp(
-		x - SliderBar.AbsolutePosition.X,
-		0,
-		SliderBar.AbsoluteSize.X
-	)
-
-	local percentage = relativeX / SliderBar.AbsoluteSize.X
-
-	Q_E_Delay = math.clamp(
-		math.floor(percentage * 7 + 1.5),
-		1,
-		8
-	)
-
-	SliderButton.Position = UDim2.new(
-		(Q_E_Delay - 1) / 7,
-		0,
-		0.5,
-		0
-	)
-
-	updateSliderText()
-end
-
-SliderButton.MouseButton1Down:Connect(function()
-	sliderDragging = true
-end)
-
-SliderBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		sliderDragging = true
-		setSliderFromX(input.Position.X)
+	if value and value >= 0 then
+		Q_E_Delay = value
+		DelayInput.Text = tostring(Q_E_Delay)
+	else
+		DelayInput.Text = tostring(Q_E_Delay)
 	end
 end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-		setSliderFromX(input.Position.X)
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		sliderDragging = false
-	end
-end)
-
-SliderButton.Position = UDim2.new(
-	(Q_E_Delay - 1) / 7,
-	0,
-	0.5,
-	0
-)
 
 --==================================================
 -- DIVIDER
@@ -300,7 +247,7 @@ SliderButton.Position = UDim2.new(
 
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(1, -10, 0, 1)
-Divider.Position = UDim2.new(0, 5, 0, 150)
+Divider.Position = UDim2.new(0, 5, 0, 172)
 Divider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 Divider.BorderSizePixel = 0
 Divider.Parent = MainFrame
@@ -311,7 +258,7 @@ Divider.Parent = MainFrame
 
 local TeleportTitle = Instance.new("TextLabel")
 TeleportTitle.Size = UDim2.new(1, 0, 0, 25)
-TeleportTitle.Position = UDim2.new(0, 0, 0, 157)
+TeleportTitle.Position = UDim2.new(0, 0, 0, 179)
 TeleportTitle.BackgroundTransparency = 1
 TeleportTitle.Text = "Teleport"
 TeleportTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -322,7 +269,7 @@ TeleportTitle.Parent = MainFrame
 -- Keybind
 local KeybindLabel = Instance.new("TextLabel")
 KeybindLabel.Size = UDim2.new(1, 0, 0, 22)
-KeybindLabel.Position = UDim2.new(0, 0, 0, 181)
+KeybindLabel.Position = UDim2.new(0, 0, 0, 203)
 KeybindLabel.BackgroundTransparency = 1
 KeybindLabel.Text = "Keybind: G"
 KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -333,7 +280,7 @@ KeybindLabel.Parent = MainFrame
 -- Teleport ON/OFF
 local TeleportToggle = Instance.new("TextButton")
 TeleportToggle.Size = UDim2.new(1, -10, 0, 32)
-TeleportToggle.Position = UDim2.new(0, 5, 0, 205)
+TeleportToggle.Position = UDim2.new(0, 5, 0, 227)
 TeleportToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 TeleportToggle.TextSize = 14
 TeleportToggle.Font = Enum.Font.SourceSansBold
@@ -361,7 +308,7 @@ UpdateTeleportToggle()
 -- Interval
 local IntervalLabel = Instance.new("TextLabel")
 IntervalLabel.Size = UDim2.new(1, 0, 0, 25)
-IntervalLabel.Position = UDim2.new(0, 0, 0, 242)
+IntervalLabel.Position = UDim2.new(0, 0, 0, 264)
 IntervalLabel.BackgroundTransparency = 1
 IntervalLabel.Text = "Teleport Interval: " .. TeleportInterval .. "s"
 IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -372,7 +319,7 @@ IntervalLabel.Parent = MainFrame
 -- Target
 local TargetLabel = Instance.new("TextLabel")
 TargetLabel.Size = UDim2.new(1, 0, 0, 20)
-TargetLabel.Position = UDim2.new(0, 0, 0, 270)
+TargetLabel.Position = UDim2.new(0, 0, 0, 292)
 TargetLabel.BackgroundTransparency = 1
 TargetLabel.Text = "Target: " .. TargetName
 TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
