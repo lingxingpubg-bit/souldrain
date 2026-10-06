@@ -399,19 +399,17 @@ end)
 --==================================================
 
 task.spawn(function()
-	while task.wait(0.1) do
+	while true do
 
 		if Enabled and not running then
 
 			local shouldRun = false
 
-			-- AUTOMATIC:
-			-- Run without waiting for Soul Drain
+			-- AUTOMATIC
 			if TriggerMode == "Automatic" then
 				shouldRun = true
 
-			-- MANUAL:
-			-- Only run when Soul Drain exists
+			-- MANUAL
 			elseif TriggerMode == "Manual" then
 				if workspace:FindFirstChild("Soul Drain", true) then
 					shouldRun = true
@@ -422,14 +420,10 @@ task.spawn(function()
 				running = true
 
 				if Mode == "Both" then
-
-					-- Q + E together
 					pressKey(Enum.KeyCode.Q)
 					pressKey(Enum.KeyCode.E)
 
 				elseif Mode == "Single" then
-
-					-- Q → delay → E
 					pressKey(Enum.KeyCode.Q)
 
 					task.wait(Q_E_Delay)
@@ -440,7 +434,20 @@ task.spawn(function()
 				end
 
 				running = false
+
+				-- Automatic: immediately start the next sequence
+				if TriggerMode == "Automatic" then
+					task.wait()
+				else
+					-- Manual: small delay before checking Soul Drain again
+					task.wait(0.1)
+				end
+
+			else
+				task.wait(0.1)
 			end
+		else
+			task.wait(0.1)
 		end
 	end
 end)
