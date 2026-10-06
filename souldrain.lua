@@ -1,28 +1,47 @@
 local SCRIPT_URL = "https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"
 
--- Re-queue for the next teleport
+--// Re-queue after teleport
 if queue_on_teleport then
-    queue_on_teleport([[
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"))()
-    ]])
+	queue_on_teleport([[
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"))()
+	]])
 end
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
 
---// SETTINGS
+local LocalPlayer = Players.LocalPlayer
+
+--==================================================
+-- SETTINGS
+--==================================================
+
+-- Soul Drain
 local Enabled = true
-local Mode = "Both" -- "Both" or "Single"
-local Q_E_Delay = 1 -- 1-8 seconds
+local Mode = "Both"
+local TriggerMode = "Manual" -- "Automatic" or "Manual"
+local Q_E_Delay = 1
 local running = false
 
---// KEY PRESS
+-- Teleport
+local TargetName = "ANiceUser52"
+local TeleportEnabled = false
+local TeleportInterval = 0.02
+
+--==================================================
+-- KEY PRESS
+--==================================================
+
 local function pressKey(key)
 	VirtualInputManager:SendKeyEvent(true, key, false, game)
 	VirtualInputManager:SendKeyEvent(false, key, false, game)
 end
 
---// GUI
+--==================================================
+-- MAIN GUI
+--==================================================
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SoulDrainAutomation"
 ScreenGui.ResetOnSpawn = false
@@ -30,16 +49,19 @@ ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 115, 0, 205)
+MainFrame.Size = UDim2.new(0, 180, 0, 370)
 
--- Same general position as the old GUI
-MainFrame.Position = UDim2.new(0.020, 0, 0.020, 100)
+-- Same general left-side location
+MainFrame.Position = UDim2.new(0.02, 0, 0.02, 100)
 
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 
---// DRAGGING
+--==================================================
+-- DRAGGING
+--==================================================
+
 local dragging = false
 local dragStart
 local startPos
@@ -80,9 +102,12 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
---// TITLE
+--==================================================
+-- TITLE
+--==================================================
+
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 25)
+Title.Size = UDim2.new(1, 0, 0, 28)
 Title.BackgroundTransparency = 1
 Title.Text = "Soul Drain Q/E"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -90,7 +115,10 @@ Title.TextSize = 14
 Title.Font = Enum.Font.SourceSansBold
 Title.Parent = MainFrame
 
---// ENABLE / DISABLE
+--==================================================
+-- SOUL DRAIN ENABLE
+--==================================================
+
 local Toggle = Instance.new("TextButton")
 Toggle.Size = UDim2.new(1, -10, 0, 32)
 Toggle.Position = UDim2.new(0, 5, 0, 30)
@@ -116,7 +144,10 @@ end)
 
 updateToggle()
 
---// BOTH / SINGLE
+--==================================================
+-- BOTH / SINGLE
+--==================================================
+
 local ModeButton = Instance.new("TextButton")
 ModeButton.Size = UDim2.new(1, -10, 0, 30)
 ModeButton.Position = UDim2.new(0, 5, 0, 67)
@@ -142,10 +173,42 @@ end)
 
 updateMode()
 
---// SLIDER LABEL
+--==================================================
+-- AUTOMATIC / MANUAL
+--==================================================
+
+local TriggerButton = Instance.new("TextButton")
+TriggerButton.Size = UDim2.new(1, -10, 0, 30)
+TriggerButton.Position = UDim2.new(0, 5, 0, 101)
+TriggerButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TriggerButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+TriggerButton.TextSize = 14
+TriggerButton.Font = Enum.Font.SourceSansBold
+TriggerButton.Parent = MainFrame
+
+local function updateTriggerMode()
+	TriggerButton.Text = TriggerMode
+end
+
+TriggerButton.MouseButton1Click:Connect(function()
+	if TriggerMode == "Manual" then
+		TriggerMode = "Automatic"
+	else
+		TriggerMode = "Manual"
+	end
+
+	updateTriggerMode()
+end)
+
+updateTriggerMode()
+
+--==================================================
+-- Q → E SLIDER
+--==================================================
+
 local SliderLabel = Instance.new("TextLabel")
 SliderLabel.Size = UDim2.new(1, -10, 0, 20)
-SliderLabel.Position = UDim2.new(0, 5, 0, 102)
+SliderLabel.Position = UDim2.new(0, 5, 0, 136)
 SliderLabel.BackgroundTransparency = 1
 SliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 SliderLabel.TextSize = 13
@@ -158,15 +221,13 @@ end
 
 updateSliderText()
 
---// SLIDER BAR
 local SliderBar = Instance.new("Frame")
 SliderBar.Size = UDim2.new(1, -20, 0, 8)
-SliderBar.Position = UDim2.new(0, 10, 0, 128)
+SliderBar.Position = UDim2.new(0, 10, 0, 162)
 SliderBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 SliderBar.BorderSizePixel = 0
 SliderBar.Parent = MainFrame
 
---// SLIDER BUTTON
 local SliderButton = Instance.new("TextButton")
 SliderButton.Size = UDim2.new(0, 14, 0, 20)
 SliderButton.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -187,7 +248,6 @@ local function setSliderFromX(x)
 
 	local percentage = relativeX / SliderBar.AbsoluteSize.X
 
-	-- 1-8 seconds
 	Q_E_Delay = math.clamp(
 		math.floor(percentage * 7 + 1.5),
 		1,
@@ -227,7 +287,6 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- Initial slider position
 SliderButton.Position = UDim2.new(
 	(Q_E_Delay - 1) / 7,
 	0,
@@ -235,23 +294,141 @@ SliderButton.Position = UDim2.new(
 	0
 )
 
---// DETECTION
+--==================================================
+-- DIVIDER
+--==================================================
+
+local Divider = Instance.new("Frame")
+Divider.Size = UDim2.new(1, -10, 0, 1)
+Divider.Position = UDim2.new(0, 5, 0, 150)
+Divider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Divider.BorderSizePixel = 0
+Divider.Parent = MainFrame
+
+--==================================================
+-- TELEPORT SECTION
+--==================================================
+
+local TeleportTitle = Instance.new("TextLabel")
+TeleportTitle.Size = UDim2.new(1, 0, 0, 25)
+TeleportTitle.Position = UDim2.new(0, 0, 0, 157)
+TeleportTitle.BackgroundTransparency = 1
+TeleportTitle.Text = "Teleport"
+TeleportTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportTitle.TextSize = 14
+TeleportTitle.Font = Enum.Font.SourceSansBold
+TeleportTitle.Parent = MainFrame
+
+-- Keybind
+local KeybindLabel = Instance.new("TextLabel")
+KeybindLabel.Size = UDim2.new(1, 0, 0, 22)
+KeybindLabel.Position = UDim2.new(0, 0, 0, 181)
+KeybindLabel.BackgroundTransparency = 1
+KeybindLabel.Text = "Keybind: G"
+KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeybindLabel.TextSize = 13
+KeybindLabel.Font = Enum.Font.SourceSansBold
+KeybindLabel.Parent = MainFrame
+
+-- Teleport ON/OFF
+local TeleportToggle = Instance.new("TextButton")
+TeleportToggle.Size = UDim2.new(1, -10, 0, 32)
+TeleportToggle.Position = UDim2.new(0, 5, 0, 205)
+TeleportToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+TeleportToggle.TextSize = 14
+TeleportToggle.Font = Enum.Font.SourceSansBold
+TeleportToggle.Parent = MainFrame
+
+local function UpdateTeleportToggle()
+	if TeleportEnabled then
+		TeleportToggle.Text = "ON"
+		TeleportToggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
+	else
+		TeleportToggle.Text = "OFF"
+		TeleportToggle.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+	end
+end
+
+local function ToggleTeleport()
+	TeleportEnabled = not TeleportEnabled
+	UpdateTeleportToggle()
+end
+
+TeleportToggle.MouseButton1Click:Connect(ToggleTeleport)
+
+UpdateTeleportToggle()
+
+-- Interval
+local IntervalLabel = Instance.new("TextLabel")
+IntervalLabel.Size = UDim2.new(1, 0, 0, 25)
+IntervalLabel.Position = UDim2.new(0, 0, 0, 242)
+IntervalLabel.BackgroundTransparency = 1
+IntervalLabel.Text = "Teleport Interval: " .. TeleportInterval .. "s"
+IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+IntervalLabel.TextSize = 13
+IntervalLabel.Font = Enum.Font.SourceSans
+IntervalLabel.Parent = MainFrame
+
+-- Target
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Size = UDim2.new(1, 0, 0, 20)
+TargetLabel.Position = UDim2.new(0, 0, 0, 270)
+TargetLabel.BackgroundTransparency = 1
+TargetLabel.Text = "Target: " .. TargetName
+TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetLabel.TextSize = 12
+TargetLabel.Font = Enum.Font.SourceSans
+TargetLabel.Parent = MainFrame
+
+--==================================================
+-- G KEYBIND
+--==================================================
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then
+		return
+	end
+
+	if input.KeyCode == Enum.KeyCode.G then
+		ToggleTeleport()
+	end
+end)
+
+--==================================================
+-- SOUL DRAIN LOOP
+--==================================================
+
 task.spawn(function()
 	while task.wait(0.1) do
 
 		if Enabled and not running then
 
-			local soulDrain = workspace:FindFirstChild("Soul Drain", true)
+			local shouldRun = false
 
-			if soulDrain then
+			-- AUTOMATIC:
+			-- Run without waiting for Soul Drain
+			if TriggerMode == "Automatic" then
+				shouldRun = true
+
+			-- MANUAL:
+			-- Only run when Soul Drain exists
+			elseif TriggerMode == "Manual" then
+				if workspace:FindFirstChild("Soul Drain", true) then
+					shouldRun = true
+				end
+			end
+
+			if shouldRun then
 				running = true
 
 				if Mode == "Both" then
-					-- Q and E together
+
+					-- Q + E together
 					pressKey(Enum.KeyCode.Q)
 					pressKey(Enum.KeyCode.E)
 
 				elseif Mode == "Single" then
+
 					-- Q → delay → E
 					pressKey(Enum.KeyCode.Q)
 
@@ -268,101 +445,24 @@ task.spawn(function()
 	end
 end)
 
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
+--==================================================
+-- TELEPORT LOOP
+--==================================================
 
-local LocalPlayer = Players.LocalPlayer
-
---// SETTINGS
-local TargetName = "ANiceUser52"
-local TeleportEnabled = false
-local TeleportInterval = 0.02
-
---// GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TeleportGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui")
-
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 180, 0, 115)
-Frame.Position = UDim2.new(0.02, 0, 0.25, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
-
---// KEYBIND LABEL
-local KeybindLabel = Instance.new("TextLabel")
-KeybindLabel.Size = UDim2.new(1, 0, 0, 25)
-KeybindLabel.BackgroundTransparency = 1
-KeybindLabel.Text = "Keybind: G"
-KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeybindLabel.TextSize = 14
-KeybindLabel.Font = Enum.Font.SourceSansBold
-KeybindLabel.Parent = Frame
-
---// ON/OFF BUTTON
-local Toggle = Instance.new("TextButton")
-Toggle.Size = UDim2.new(1, -20, 0, 35)
-Toggle.Position = UDim2.new(0, 10, 0, 30)
-Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-Toggle.TextSize = 15
-Toggle.Font = Enum.Font.SourceSansBold
-Toggle.Parent = Frame
-
-local function UpdateToggle()
-	if TeleportEnabled then
-		Toggle.Text = "ON"
-		Toggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
-	else
-		Toggle.Text = "OFF"
-		Toggle.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
-	end
-end
-
-local function ToggleTeleport()
-	TeleportEnabled = not TeleportEnabled
-	UpdateToggle()
-end
-
-Toggle.MouseButton1Click:Connect(ToggleTeleport)
-
-UpdateToggle()
-
---// INTERVAL LABEL
-local IntervalLabel = Instance.new("TextLabel")
-IntervalLabel.Size = UDim2.new(1, 0, 0, 30)
-IntervalLabel.Position = UDim2.new(0, 0, 0, 75)
-IntervalLabel.BackgroundTransparency = 1
-IntervalLabel.Text = "Teleport Interval: 0.1s"
-IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-IntervalLabel.TextSize = 13
-IntervalLabel.Font = Enum.Font.SourceSans
-IntervalLabel.Parent = Frame
-
---// G KEYBIND
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then
-		return
-	end
-
-	if input.KeyCode == Enum.KeyCode.G then
-		ToggleTeleport()
-	end
-end)
-
---// TELEPORT LOOP
 task.spawn(function()
 	while task.wait(TeleportInterval) do
 
 		if TeleportEnabled then
+
 			local Target = Players:FindFirstChild(TargetName)
 
 			if Target and Target.Character then
+
 				local TargetRoot =
 					Target.Character:FindFirstChild("HumanoidRootPart")
 
 				local MyCharacter = LocalPlayer.Character
+
 				local MyRoot =
 					MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
 
