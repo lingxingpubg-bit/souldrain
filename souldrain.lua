@@ -17,17 +17,14 @@ local LocalPlayer = Players.LocalPlayer
 -- SETTINGS
 --==================================================
 
---// Soul Drain
+-- Soul Drain
 local Enabled = true
-local Mode = "Both" -- "Both" or "Single"
+local Mode = "Both"
 local TriggerMode = "Manual" -- "Automatic" or "Manual"
-
-local Q_E_Delay = 1 -- Q -> E delay, 1-8 seconds
-local CycleWait = 1 -- Time from cycle START to next cycle, 0-10 seconds
-
+local Q_E_Delay = 1
 local running = false
 
---// Teleport
+-- Teleport
 local TargetName = "ANiceUser52"
 local TeleportEnabled = false
 local TeleportInterval = 0.02
@@ -45,39 +42,21 @@ end
 -- MAIN GUI
 --==================================================
 
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- Remove old GUI if one already exists
-local OldGui = PlayerGui:FindFirstChild("SoulDrainAutomation")
-if OldGui then
-	OldGui:Destroy()
-end
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SoulDrainAutomation"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = false
-ScreenGui.DisplayOrder = 999
-ScreenGui.Enabled = true
-ScreenGui.Parent = PlayerGui
+ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 180, 0, 385)
+MainFrame.Size = UDim2.new(0, 180, 0, 370)
+
+-- Same general left-side location
 MainFrame.Position = UDim2.new(0.02, 0, 0.02, 100)
 
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
-MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
-
-print("================================")
-print("SOUL DRAIN SCRIPT STARTED")
-print("GUI CREATED")
-print("PlayerGui:", PlayerGui)
-print("ScreenGui:", ScreenGui)
-print("MainFrame:", MainFrame)
-print("================================")
 
 --==================================================
 -- DRAGGING
@@ -252,12 +231,7 @@ SliderBar.Parent = MainFrame
 local SliderButton = Instance.new("TextButton")
 SliderButton.Size = UDim2.new(0, 14, 0, 20)
 SliderButton.AnchorPoint = Vector2.new(0.5, 0.5)
-SliderButton.Position = UDim2.new(
-	(Q_E_Delay - 1) / 7,
-	0,
-	0.5,
-	0
-)
+SliderButton.Position = UDim2.new(0, 0, 0.5, 0)
 SliderButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
 SliderButton.Text = ""
 SliderButton.BorderSizePixel = 0
@@ -302,9 +276,7 @@ SliderBar.InputBegan:Connect(function(input)
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-	if sliderDragging
-		and input.UserInputType == Enum.UserInputType.MouseMovement then
-
+	if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 		setSliderFromX(input.Position.X)
 	end
 end)
@@ -315,98 +287,12 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
---==================================================
--- NEXT CYCLE SLIDER
---==================================================
-
-local CycleLabel = Instance.new("TextLabel")
-CycleLabel.Size = UDim2.new(1, -10, 0, 20)
-CycleLabel.Position = UDim2.new(0, 5, 0, 180)
-CycleLabel.BackgroundTransparency = 1
-CycleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-CycleLabel.TextSize = 13
-CycleLabel.Font = Enum.Font.SourceSans
-CycleLabel.Parent = MainFrame
-
-local function updateCycleText()
-	CycleLabel.Text = "Next Cycle: " .. CycleWait .. "s"
-end
-
-updateCycleText()
-
-local CycleBar = Instance.new("Frame")
-CycleBar.Size = UDim2.new(1, -20, 0, 8)
-CycleBar.Position = UDim2.new(0, 10, 0, 206)
-CycleBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-CycleBar.BorderSizePixel = 0
-CycleBar.Parent = MainFrame
-
-local CycleButton = Instance.new("TextButton")
-CycleButton.Size = UDim2.new(0, 14, 0, 20)
-CycleButton.AnchorPoint = Vector2.new(0.5, 0.5)
-CycleButton.Position = UDim2.new(
-	CycleWait / 10,
+SliderButton.Position = UDim2.new(
+	(Q_E_Delay - 1) / 7,
 	0,
 	0.5,
 	0
 )
-CycleButton.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-CycleButton.Text = ""
-CycleButton.BorderSizePixel = 0
-CycleButton.Parent = CycleBar
-
-local cycleSliderDragging = false
-
-local function setCycleSliderFromX(x)
-	local relativeX = math.clamp(
-		x - CycleBar.AbsolutePosition.X,
-		0,
-		CycleBar.AbsoluteSize.X
-	)
-
-	local percentage = relativeX / CycleBar.AbsoluteSize.X
-
-	-- 0-10 seconds
-	CycleWait = math.clamp(
-		math.floor(percentage * 10 + 0.5),
-		0,
-		10
-	)
-
-	CycleButton.Position = UDim2.new(
-		CycleWait / 10,
-		0,
-		0.5,
-		0
-	)
-
-	updateCycleText()
-end
-
-CycleButton.MouseButton1Down:Connect(function()
-	cycleSliderDragging = true
-end)
-
-CycleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		cycleSliderDragging = true
-		setCycleSliderFromX(input.Position.X)
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if cycleSliderDragging
-		and input.UserInputType == Enum.UserInputType.MouseMovement then
-
-		setCycleSliderFromX(input.Position.X)
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		cycleSliderDragging = false
-	end
-end)
 
 --==================================================
 -- DIVIDER
@@ -414,7 +300,7 @@ end)
 
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(1, -10, 0, 1)
-Divider.Position = UDim2.new(0, 5, 0, 225)
+Divider.Position = UDim2.new(0, 5, 0, 150)
 Divider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 Divider.BorderSizePixel = 0
 Divider.Parent = MainFrame
@@ -425,7 +311,7 @@ Divider.Parent = MainFrame
 
 local TeleportTitle = Instance.new("TextLabel")
 TeleportTitle.Size = UDim2.new(1, 0, 0, 25)
-TeleportTitle.Position = UDim2.new(0, 0, 0, 238)
+TeleportTitle.Position = UDim2.new(0, 0, 0, 157)
 TeleportTitle.BackgroundTransparency = 1
 TeleportTitle.Text = "Teleport"
 TeleportTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -433,13 +319,10 @@ TeleportTitle.TextSize = 14
 TeleportTitle.Font = Enum.Font.SourceSansBold
 TeleportTitle.Parent = MainFrame
 
---==================================================
--- KEYBIND
---==================================================
-
+-- Keybind
 local KeybindLabel = Instance.new("TextLabel")
 KeybindLabel.Size = UDim2.new(1, 0, 0, 22)
-KeybindLabel.Position = UDim2.new(0, 0, 0, 263)
+KeybindLabel.Position = UDim2.new(0, 0, 0, 181)
 KeybindLabel.BackgroundTransparency = 1
 KeybindLabel.Text = "Keybind: G"
 KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -447,13 +330,10 @@ KeybindLabel.TextSize = 13
 KeybindLabel.Font = Enum.Font.SourceSansBold
 KeybindLabel.Parent = MainFrame
 
---==================================================
--- TELEPORT ON/OFF
---==================================================
-
+-- Teleport ON/OFF
 local TeleportToggle = Instance.new("TextButton")
 TeleportToggle.Size = UDim2.new(1, -10, 0, 32)
-TeleportToggle.Position = UDim2.new(0, 5, 0, 288)
+TeleportToggle.Position = UDim2.new(0, 5, 0, 205)
 TeleportToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 TeleportToggle.TextSize = 14
 TeleportToggle.Font = Enum.Font.SourceSansBold
@@ -478,13 +358,10 @@ TeleportToggle.MouseButton1Click:Connect(ToggleTeleport)
 
 UpdateTeleportToggle()
 
---==================================================
--- TELEPORT INTERVAL
---==================================================
-
+-- Interval
 local IntervalLabel = Instance.new("TextLabel")
 IntervalLabel.Size = UDim2.new(1, 0, 0, 25)
-IntervalLabel.Position = UDim2.new(0, 0, 0, 325)
+IntervalLabel.Position = UDim2.new(0, 0, 0, 242)
 IntervalLabel.BackgroundTransparency = 1
 IntervalLabel.Text = "Teleport Interval: " .. TeleportInterval .. "s"
 IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -492,13 +369,10 @@ IntervalLabel.TextSize = 13
 IntervalLabel.Font = Enum.Font.SourceSans
 IntervalLabel.Parent = MainFrame
 
---==================================================
--- TARGET
---==================================================
-
+-- Target
 local TargetLabel = Instance.new("TextLabel")
 TargetLabel.Size = UDim2.new(1, 0, 0, 20)
-TargetLabel.Position = UDim2.new(0, 0, 0, 350)
+TargetLabel.Position = UDim2.new(0, 0, 0, 270)
 TargetLabel.BackgroundTransparency = 1
 TargetLabel.Text = "Target: " .. TargetName
 TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -531,47 +405,25 @@ task.spawn(function()
 
 			local shouldRun = false
 
-			--==================================================
 			-- AUTOMATIC
-			--==================================================
-
 			if TriggerMode == "Automatic" then
 				shouldRun = true
 
-			--==================================================
 			-- MANUAL
-			--==================================================
-
 			elseif TriggerMode == "Manual" then
-
 				if workspace:FindFirstChild("Soul Drain", true) then
 					shouldRun = true
 				end
 			end
 
 			if shouldRun then
-
-				--==================================================
-				-- START OF CYCLE
-				--==================================================
-
 				running = true
 
-				-- IMPORTANT:
-				-- Cycle timer starts HERE, before Q is pressed.
-				local cycleStart = os.clock()
-
-				--==================================================
-				-- Q / E
-				--==================================================
-
 				if Mode == "Both" then
-
 					pressKey(Enum.KeyCode.Q)
 					pressKey(Enum.KeyCode.E)
 
 				elseif Mode == "Single" then
-
 					pressKey(Enum.KeyCode.Q)
 
 					task.wait(Q_E_Delay)
@@ -581,41 +433,22 @@ task.spawn(function()
 					end
 				end
 
---==================================================
--- NEXT CYCLE INPUT
---==================================================
+				running = false
 
-local CycleLabel = Instance.new("TextLabel")
-CycleLabel.Size = UDim2.new(0.55, -5, 0, 25)
-CycleLabel.Position = UDim2.new(0, 5, 0, 190)
-CycleLabel.BackgroundTransparency = 1
-CycleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-CycleLabel.TextSize = 13
-CycleLabel.Font = Enum.Font.SourceSans
-CycleLabel.Text = "Next Cycle:"
-CycleLabel.TextXAlignment = Enum.TextXAlignment.Left
-CycleLabel.Parent = MainFrame
+				-- Automatic: immediately start the next sequence
+				if TriggerMode == "Automatic" then
+					task.wait()
+				else
+					-- Manual: small delay before checking Soul Drain again
+					task.wait(0.1)
+				end
 
-local CycleInput = Instance.new("TextBox")
-CycleInput.Size = UDim2.new(0.45, -10, 0, 25)
-CycleInput.Position = UDim2.new(0.55, 5, 0, 190)
-CycleInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-CycleInput.BorderSizePixel = 0
-CycleInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-CycleInput.TextSize = 13
-CycleInput.Font = Enum.Font.SourceSans
-CycleInput.Text = tostring(CycleWait)
-CycleInput.ClearTextOnFocus = false
-CycleInput.Parent = MainFrame
-
-CycleInput.FocusLost:Connect(function()
-	local value = tonumber(CycleInput.Text)
-
-	if value and value >= 0 then
-		CycleWait = value
-		CycleInput.Text = tostring(CycleWait)
-	else
-		CycleInput.Text = tostring(CycleWait)
+			else
+				task.wait(0.1)
+			end
+		else
+			task.wait(0.1)
+		end
 	end
 end)
 
