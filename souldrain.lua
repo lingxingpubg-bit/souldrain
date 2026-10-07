@@ -345,57 +345,108 @@ end)
 -- SOUL DRAIN LOOP
 --==================================================
 
+local qPressed = false
+local ePressed = false
+
+local function isInsideGroundAura()
+	local groundAura = workspace:FindFirstChild("groundAura", true)
+
+	if not groundAura then
+		return false
+	end
+
+	local MyCharacter = LocalPlayer.Character
+	local MyRoot = MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
+
+	if not MyRoot then
+		return false
+	end
+
+	-- groundAura must be a BasePart
+	if groundAura:IsA("BasePart") then
+		local localPosition = groundAura.CFrame:PointToObjectSpace(MyRoot.Position)
+		local halfSize = groundAura.Size / 2
+
+		return
+			math.abs(localPosition.X) <= halfSize.X
+			and math.abs(localPosition.Y) <= halfSize.Y
+			and math.abs(localPosition.Z) <= halfSize.Z
+	end
+
+	return false
+end
+
 task.spawn(function()
 	while true do
 
-		if Enabled and not running then
+		if Enabled then
 
-			local shouldRun = false
-
+			--==================================================
 			-- AUTOMATIC
+			--==================================================
+
 			if TriggerMode == "Automatic" then
-				shouldRun = true
 
-			-- MANUAL
-			elseif TriggerMode == "Manual" then
-				if workspace:FindFirstChild("Soul Drain", true) then
-					shouldRun = true
-				end
-			end
+				if not running then
+					running = true
 
-			if shouldRun then
-				running = true
+					if Mode == "Both" then
 
-				if Mode == "Both" then
-					pressKey(Enum.KeyCode.Q)
-					pressKey(Enum.KeyCode.E)
-
-				elseif Mode == "Single" then
-					pressKey(Enum.KeyCode.Q)
-
-					task.wait(Q_E_Delay)
-
-					if Enabled then
+						pressKey(Enum.KeyCode.Q)
 						pressKey(Enum.KeyCode.E)
+
+					elseif Mode == "Single" then
+
+						pressKey(Enum.KeyCode.Q)
+
+						task.wait(Q_E_Delay)
+
+						if Enabled then
+							pressKey(Enum.KeyCode.E)
+						end
 					end
+
+					running = false
 				end
 
-				running = false
+			--==================================================
+			-- MANUAL
+			--==================================================
 
-				-- Automatic: immediately start the next sequence
-				if TriggerMode == "Automatic" then
-					task.wait()
-				else
-					-- Manual: small delay before checking Soul Drain again
-					task.wait(0.1)
+			elseif TriggerMode == "Manual" then
+
+				local insideGroundAura = isInsideGroundAura()
+				local soulDrainFound = workspace:FindFirstChild("Soul Drain", true) ~= nil
+
+				-- Q when entering groundAura
+				if insideGroundAura and not qPressed then
+					pressKey(Enum.KeyCode.Q)
+					qPressed = true
 				end
 
-			else
-				task.wait(0.1)
+				-- Reset Q trigger after leaving groundAura
+				if not insideGroundAura then
+					qPressed = false
+				end
+
+				-- E when Soul Drain appears
+				if soulDrainFound and not ePressed then
+					pressKey(Enum.KeyCode.E)
+					ePressed = true
+				end
+
+				-- Reset E trigger after Soul Drain disappears
+				if not soulDrainFound then
+					ePressed = false
+				end
 			end
 		else
-			task.wait(0.1)
+			-- Reset manual trigger states when disabled
+			qPressed = false
+			ePressed = false
 		end
+
+		task.wait(0.05)
 	end
 end)
 
