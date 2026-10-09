@@ -26,8 +26,11 @@ local running = false
 
 -- Teleport
 local TargetName = "ANiceUser52"
-local TeleportEnabled = false
+local TeleportEnabled = true
 local TeleportInterval = 0.02
+local FollowDistance = 20
+local wasTargetAlive = nil
+local resettingCharacter = false
 
 --==================================================
 -- KEY PRESS
@@ -451,27 +454,61 @@ task.spawn(function()
 end)
 
 --==================================================
--- TELEPORT LOOP
+-- AUTOMATIC TELEPORT / FOLLOW LOOP
 --==================================================
 
 task.spawn(function()
 	while task.wait(TeleportInterval) do
+		local Target = Players:FindFirstChild(TargetName)
 
-		if TeleportEnabled then
+		if not Target then
+			wasTargetAlive = nil
+			continue
+		end
 
-			local Target = Players:FindFirstChild(TargetName)
+		local TargetCharacter = Target.Character
+		local TargetHumanoid = TargetCharacter
+			and TargetCharacter:FindFirstChildOfClass("Humanoid")
+		local TargetRoot = TargetCharacter
+			and TargetCharacter:FindFirstChild("HumanoidRootPart")
 
-			if Target and Target.Character then
+		local targetAlive = TargetHumanoid ~= nil
+			and TargetHumanoid.Health > 0
 
-				local TargetRoot =
-					Target.Character:FindFirstChild("HumanoidRootPart")
+		-- Reset your character when the target dies
+		if wasTargetAlive == true and not targetAlive then
+			if not resettingCharacter then
+				resettingCharacter = true
 
 				local MyCharacter = LocalPlayer.Character
+				local MyHumanoid = MyCharacter
+					and MyCharacter:FindFirstChildOfClass("Humanoid")
 
-				local MyRoot =
-					MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
+				if MyHumanoid and MyHumanoid.Health > 0 then
+					MyHumanoid.Health = 0
+				end
 
-				if TargetRoot and MyRoot then
+				task.delay(3, function()
+					resettingCharacter = false
+				end)
+			end
+		end
+
+		wasTargetAlive = targetAlive
+
+		-- Automatically teleport when within 20 studs
+		if targetAlive and TargetRoot then
+			local MyCharacter = LocalPlayer.Character
+			local MyRoot = MyCharacter
+				and MyCharacter:FindFirstChild("HumanoidRootPart")
+
+			local MyHumanoid = MyCharacter
+				and MyCharacter:FindFirstChildOfClass("Humanoid")
+
+			if MyRoot and MyHumanoid and MyHumanoid.Health > 0 then
+				local distance = (MyRoot.Position - TargetRoot.Position).Magnitude
+
+				if distance <= FollowDistance then
 					MyRoot.CFrame = TargetRoot.CFrame
 				end
 			end
