@@ -351,7 +351,7 @@ end)
 
 local function findSoulDrain()
     for _, obj in ipairs(workspace:GetDescendants()) do
-        if string.find(string.lower(obj.Name), "soul drain", 1, true) then
+        if obj:IsA("Model") and obj.Name == "Soul Drain" then
             return obj
         end
     end
