@@ -348,6 +348,17 @@ end)
 -- SOUL DRAIN LOOP
 --==================================================
 
+
+local function findSoulDrain()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if string.find(string.lower(obj.Name), "soul drain", 1, true) then
+            return obj
+        end
+    end
+
+    return nil
+end
+
 local qPressed = false
 local ePressed = false
 
@@ -419,7 +430,8 @@ task.spawn(function()
 			elseif TriggerMode == "Manual" then
 
 				local insideGroundAura = isInsideGroundAura()
-				local soulDrainFound = workspace:FindFirstChild("Soul Drain", true) ~= nil
+				local soulDrainObject = findSoulDrain()
+                                local soulDrainFound = soulDrainObject ~= nil
 
 				-- Q when entering groundAura
 				if insideGroundAura and not qPressed then
