@@ -28,7 +28,7 @@ local running = false
 local TargetName = "ANiceUser52"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
-local FollowDistance = 20
+local FollowDistance = 15
 local wasTargetAlive = nil
 local resettingCharacter = false
 
@@ -350,10 +350,10 @@ end)
 
 
 local function findSoulDrain()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == "Soul Drain" then
-            return obj
-        end
+    local obj = workspace:FindFirstChild("Soul Drain")
+
+    if obj and obj:IsA("Model") then
+        return obj
     end
 
     return nil
