@@ -25,7 +25,7 @@ local Q_E_Delay = 1
 local running = false
 
 -- Teleport
-local TargetName = "ANiceUser52"
+local TargetName = "Vordyz"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
 local FollowDistance = 15
@@ -350,10 +350,10 @@ end)
 
 
 local function findSoulDrain()
-    local obj = workspace:FindFirstChild("Soul Drain")
-
-    if obj and obj:IsA("Model") then
-        return obj
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == "Soul Drain" then
+            return obj
+        end
     end
 
     return nil
