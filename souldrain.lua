@@ -1,5 +1,3 @@
-UPDATED
-
 local SCRIPT_URL = "https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"
 
 --// Re-queue after teleport
