@@ -1,3 +1,5 @@
+UPDATED
+
 local SCRIPT_URL = "https://raw.githubusercontent.com/lingxingpubg-bit/souldrain/refs/heads/main/souldrain.lua"
 
 --// Re-queue after teleport
@@ -349,14 +351,8 @@ end)
 --==================================================
 
 
-local function findSoulDrain()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == "Soul Drain" then
-            return obj
-        end
-    end
-
-    return nil
+local function findGeyser()
+    return workspace:FindFirstChild("Geyser")
 end
 
 local qPressed = false
@@ -430,8 +426,8 @@ task.spawn(function()
 			elseif TriggerMode == "Manual" then
 
 				local insideGroundAura = isInsideGroundAura()
-				local soulDrainObject = findSoulDrain()
-                                local soulDrainFound = soulDrainObject ~= nil
+				local geyserObject = findGeyser()
+                                local geyserFound = geyserObject ~= nil
 
 				-- Q when entering groundAura
 				if insideGroundAura and not qPressed then
@@ -445,13 +441,13 @@ task.spawn(function()
 				end
 
 				-- E when Soul Drain appears
-				if soulDrainFound and not ePressed then
+				if geyserFound and not ePressed then
 					pressKey(Enum.KeyCode.E)
 					ePressed = true
 				end
 
 				-- Reset E trigger after Soul Drain disappears
-				if not soulDrainFound then
+				if not geyserFound then
 					ePressed = false
 				end
 			end
