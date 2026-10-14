@@ -17,7 +17,7 @@ local LocalPlayer = Players.LocalPlayer
 -- SETTINGS
 --==================================================
 
--- Soul Drain
+-- Geyser
 local Enabled = true
 local Mode = "Both"
 local TriggerMode = "Manual" -- "Automatic" or "Manual"
@@ -25,7 +25,7 @@ local Q_E_Delay = 1
 local running = false
 
 -- Teleport
-local TargetName = "Vordyz"
+local TargetName = "ANiceUser52"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
 local FollowDistance = 15
@@ -463,61 +463,197 @@ end)
 -- AUTOMATIC TELEPORT / FOLLOW LOOP
 --==================================================
 
+
 task.spawn(function()
-	while task.wait(TeleportInterval) do
-		local Target = Players:FindFirstChild(TargetName)
+    while task.wait(TeleportInterval) do
+        if not TeleportEnabled then
+            wasTargetAlive = nil
+            continue
+        end
 
-		if not Target then
-			wasTargetAlive = nil
-			continue
-		end
+        local Target = Players:FindFirstChild(TargetName)
+        if not Target then
+            wasTargetAlive = nil
+            continue
+        end
 
-		local TargetCharacter = Target.Character
-		local TargetHumanoid = TargetCharacter
-			and TargetCharacter:FindFirstChildOfClass("Humanoid")
-		local TargetRoot = TargetCharacter
-			and TargetCharacter:FindFirstChild("HumanoidRootPart")
+        local TargetCharacter = Target.Character
+        local TargetHumanoid = TargetCharacter
+            and TargetCharacter:FindFirstChildOfClass("Humanoid")
+        local TargetRoot = TargetCharacter
+            and TargetCharacter:FindFirstChild("HumanoidRootPart")
 
-		local targetAlive = TargetHumanoid ~= nil
-			and TargetHumanoid.Health > 0
+        local targetAlive = TargetHumanoid ~= nil
+            and TargetHumanoid.Health > 0
 
-		-- Reset your character when the target dies
-		if wasTargetAlive == true and not targetAlive then
-			if not resettingCharacter then
-				resettingCharacter = true
+        -- Preserve the existing target-death reset behavior
+        if wasTargetAlive == true and not targetAlive then
+            if not resettingCharacter then
+                resettingCharacter = true
 
-				local MyCharacter = LocalPlayer.Character
-				local MyHumanoid = MyCharacter
-					and MyCharacter:FindFirstChildOfClass("Humanoid")
+                local MyCharacter = LocalPlayer.Character
+                local MyHumanoid = MyCharacter
+                    and MyCharacter:FindFirstChildOfClass("Humanoid")
 
-				if MyHumanoid and MyHumanoid.Health > 0 then
-					MyHumanoid.Health = 0
-				end
+                if MyHumanoid and MyHumanoid.Health > 0 then
+                    MyHumanoid.Health = 0
+                end
 
-				task.delay(3, function()
-					resettingCharacter = false
-				end)
-			end
-		end
+                task.delay(3, function()
+                    resettingCharacter = false
+                end)
+            end
+        end
 
-		wasTargetAlive = targetAlive
+        wasTargetAlive = targetAlive
 
-		-- Automatically teleport when within 20 studs
-		if targetAlive and TargetRoot then
-			local MyCharacter = LocalPlayer.Character
-			local MyRoot = MyCharacter
-				and MyCharacter:FindFirstChild("HumanoidRootPart")
+        if targetAlive and TargetRoot then
+            local MyCharacter = LocalPlayer.Character
+            local MyRoot = MyCharacter
+                and MyCharacter:FindFirstChild("HumanoidRootPart")
+            local MyHumanoid = MyCharacter
+                and MyCharacter:FindFirstChildOfClass("Humanoid")
 
-			local MyHumanoid = MyCharacter
-				and MyCharacter:FindFirstChildOfClass("Humanoid")
+            if MyRoot and MyHumanoid and MyHumanoid.Health > 0 then
+                local distance = (MyRoot.Position - TargetRoot.Position).Magnitude
 
-			if MyRoot and MyHumanoid and MyHumanoid.Health > 0 then
-				local distance = (MyRoot.Position - TargetRoot.Position).Magnitude
-
-				if distance <= FollowDistance then
-					MyRoot.CFrame = TargetRoot.CFrame
-				end
-			end
-		end
-	end
+                if distance > FollowDistance then
+                    -- Walk toward the target while too far away
+                    MyHumanoid:MoveTo(TargetRoot.Position)
+                else
+                    -- Teleport directly when close enough
+                    MyRoot.CFrame = TargetRoot.CFrame
+                    MyHumanoid:MoveTo(MyRoot.Position)
+                end
+            end
+        end
+    end
 end)
+
+print("Hitbox script started")
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+
+local HITBOX_DIAMETER = 10
+local HITBOX_HEIGHT = 6
+
+local MOVE_DISTANCE = 15
+local MOVE_COOLDOWN = 1
+
+local hitbox
+local isMovingAway = false
+local lastDetected = false
+
+local targetPart = workspace:FindFirstChild("dailyRewardTouchPart", true)
+
+if not targetPart then
+    warn("dailyRewardTouchPart not found; hitbox GUI will still load.")
+end
+
+-- Create the visual hitbox
+local function setupCharacter(character)
+    local root = character:WaitForChild("HumanoidRootPart")
+
+    local old = character:FindFirstChild("VisualHitbox")
+    if old then
+        old:Destroy()
+    end
+
+    local part = Instance.new("Part")
+    part.Name = "VisualHitbox"
+    part.Shape = Enum.PartType.Cylinder
+    part.Size = Vector3.new(
+        HITBOX_HEIGHT,
+        HITBOX_DIAMETER,
+        HITBOX_DIAMETER
+    )
+    part.Color = Color3.fromRGB(255, 140, 0)
+    part.Transparency = 0.65
+    part.Material = Enum.Material.Neon
+    part.CanCollide = false
+    part.CanTouch = false
+    part.CanQuery = false
+    part.Massless = true
+    part.CastShadow = false
+    part.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(90))
+    part.Parent = character
+
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = root
+    weld.Part1 = part
+    weld.Parent = part
+
+    return part
+end
+
+local function applySize(size)
+    currentSize = math.clamp(size, MIN_SIZE, MAX_SIZE)
+
+    if hitbox and hitbox.Parent then
+        hitbox.Size = Vector3.new(currentSize, currentSize, currentSize)
+    end
+end
+
+
+-- Reset character when hitbox reaches dailyRewardTouchPart
+local isResetting = false
+
+RunService.Heartbeat:Connect(function()
+    if isResetting or not hitbox or not hitbox.Parent then
+        return
+    end
+
+    if not targetPart or not targetPart:IsA("BasePart") then
+        targetPart = workspace:FindFirstChild("dailyRewardTouchPart", true)
+        return
+    end
+
+    local character = player.Character
+    local humanoid = character
+        and character:FindFirstChildOfClass("Humanoid")
+
+    if not humanoid or humanoid.Health <= 0 then
+        return
+    end
+
+    -- Closest point on dailyRewardTouchPart
+    local localPos = targetPart.CFrame:PointToObjectSpace(hitbox.Position)
+    local half = targetPart.Size / 2
+
+    local closest = Vector3.new(
+        math.clamp(localPos.X, -half.X, half.X),
+        math.clamp(localPos.Y, -half.Y, half.Y),
+        math.clamp(localPos.Z, -half.Z, half.Z)
+    )
+
+    closest = targetPart.CFrame:PointToWorldSpace(closest)
+
+    local distance = (hitbox.Position - closest).Magnitude
+    local range = hitbox.Size.Magnitude / 2
+
+    if distance <= range then
+        isResetting = true
+        humanoid.Health = 0
+
+        task.delay(2, function()
+            isResetting = false
+        end)
+    end
+end)
+
+-- Character respawn handling
+local function onCharacterAdded(character)
+    hitbox = setupCharacter(character)
+    valueLabel.Text = "Diameter: 10 | Height: 6"
+    lastDetected = false
+end
+
+player.CharacterAdded:Connect(onCharacterAdded)
+
+if player.Character then
+    onCharacterAdded(player.Character)
+end
