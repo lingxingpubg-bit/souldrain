@@ -350,7 +350,7 @@ end)
 
 
 local function findGeyser()
-    return workspace:FindFirstChild("Geyser")
+    return workspace:FindFirstChild("Blade Barrage Sword", true)
 end
 
 local qPressed = false
