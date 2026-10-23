@@ -28,7 +28,7 @@ local running = false
 local TargetName = "ANiceUser52"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
-local FollowDistance = 15
+local FollowDistance = 10
 local wasTargetAlive = nil
 local resettingCharacter = false
 
@@ -384,6 +384,41 @@ local function isInsideGroundAura()
 	return false
 end
 
+local TARGET_AURA_COLOR = Color3.fromRGB(211, 85, 85)
+
+local function isTargetInsideGroundAura()
+	local target = Players:FindFirstChild("ANiceUser52")
+
+	if not target then
+		return false
+	end
+
+	local character = target.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+
+	if not root then
+		return false
+	end
+
+		for _, aura in ipairs(workspace:GetChildren()) do
+		if aura.Name == "groundAura"
+			and aura:IsA("BasePart")
+			and aura.Color == TARGET_AURA_COLOR then
+
+			local localPos = aura.CFrame:PointToObjectSpace(root.Position)
+			local halfSize = aura.Size / 2
+
+			if math.abs(localPos.X) <= halfSize.X
+				and math.abs(localPos.Y) <= halfSize.Y
+				and math.abs(localPos.Z) <= halfSize.Z then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
 task.spawn(function()
 	while true do
 
@@ -427,16 +462,20 @@ task.spawn(function()
 				local geyserObject = findGeyser()
                                 local geyserFound = geyserObject ~= nil
 
-				-- Q when entering groundAura
-				if insideGroundAura and not qPressed then
+
+				-- Q when ANiceUser52 enters the matching groundAura
+				local targetInsideAura = isTargetInsideGroundAura()
+
+				if targetInsideAura and not qPressed then
 					pressKey(Enum.KeyCode.Q)
 					qPressed = true
 				end
 
-				-- Reset Q trigger after leaving groundAura
-				if not insideGroundAura then
+				-- Reset Q trigger after target leaves the matching aura
+				if not targetInsideAura then
 					qPressed = false
 				end
+
 
 				-- E when Soul Drain appears
 				if geyserFound and not ePressed then
