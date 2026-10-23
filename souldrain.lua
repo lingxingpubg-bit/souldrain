@@ -387,7 +387,7 @@ end
 local TARGET_AURA_COLOR = Color3.fromRGB(211, 85, 85)
 
 local function isTargetInsideGroundAura()
-	local target = Players:FindFirstChild("ANiceUser52")
+	local target = Players:FindFirstChild("Time_lep")
 
 	if not target then
 		return false
