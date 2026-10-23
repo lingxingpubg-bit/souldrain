@@ -25,7 +25,7 @@ local Q_E_Delay = 1
 local running = false
 
 -- Teleport
-local TargetName = "ANiceUser52"
+local TargetName = "Time_lep"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
 local FollowDistance = 10
