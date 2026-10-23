@@ -25,7 +25,7 @@ local Q_E_Delay = 1
 local running = false
 
 -- Teleport
-local TargetName = "Time_lep"
+local TargetName = "RoyalRock75WasHacked"
 local TeleportEnabled = true
 local TeleportInterval = 0.02
 local FollowDistance = 10
@@ -387,7 +387,7 @@ end
 local TARGET_AURA_COLOR = Color3.fromRGB(211, 85, 85)
 
 local function isTargetInsideGroundAura()
-	local target = Players:FindFirstChild("Time_lep")
+	local target = Players:FindFirstChild("RoyalRock75WasHacked")
 
 	if not target then
 		return false
