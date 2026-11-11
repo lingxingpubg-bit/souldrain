@@ -35,7 +35,7 @@ local resettingCharacter = false
 
 -- Auto Clicker Settings
 local AutoClickEnabled = false
-local AutoTriggerSafeZone = true -- Automatically turns on inside "thirdBossSafeZones"
+local AutoTriggerSafeZone = true -- Auto-triggers ON when entering thirdBossSafeZones
 local AutoClickDelay = 0.05
 local LockedPos = Vector2.new(605, 405) -- Default target: 605, 405
 
@@ -500,7 +500,7 @@ YBox.FocusLost:Connect(OnCoordInput)
 
 -- Live Safe Zone Status Indicator
 local ZoneStatusLabel = Instance.new("TextLabel")
-ZoneStatusLabel.Size = UDim2.new(1, 0, 0, 16)
+ZoneStatusLabel.Size = UDim2.new(1, 0, 0, 15)
 ZoneStatusLabel.Position = UDim2.new(0, 0, 0, 384)
 ZoneStatusLabel.BackgroundTransparency = 1
 ZoneStatusLabel.Text = "Zone: OUTSIDE"
@@ -509,10 +509,21 @@ ZoneStatusLabel.TextSize = 11
 ZoneStatusLabel.Font = Enum.Font.SourceSansBold
 ZoneStatusLabel.Parent = MainFrame
 
+-- Safe Zone Distance Label
+local ZoneDistLabel = Instance.new("TextLabel")
+ZoneDistLabel.Size = UDim2.new(1, 0, 0, 15)
+ZoneDistLabel.Position = UDim2.new(0, 0, 0, 400)
+ZoneDistLabel.BackgroundTransparency = 1
+ZoneDistLabel.Text = "Zone Dist: N/A"
+ZoneDistLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+ZoneDistLabel.TextSize = 11
+ZoneDistLabel.Font = Enum.Font.SourceSans
+ZoneDistLabel.Parent = MainFrame
+
 -- Live Cursor Position Label
 local MouseLiveLabel = Instance.new("TextLabel")
-MouseLiveLabel.Size = UDim2.new(1, 0, 0, 16)
-MouseLiveLabel.Position = UDim2.new(0, 0, 0, 402)
+MouseLiveLabel.Size = UDim2.new(1, 0, 0, 15)
+MouseLiveLabel.Position = UDim2.new(0, 0, 0, 417)
 MouseLiveLabel.BackgroundTransparency = 1
 MouseLiveLabel.Text = "Mouse: (0, 0)"
 MouseLiveLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
@@ -546,15 +557,15 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 --==================================================
--- THIRD BOSS SAFE ZONE CHECK
+-- THIRD BOSS SAFE ZONE DISTANCE & CHECK
 --==================================================
 
 local hitbox -- Reference to player's visual hitbox
 
-local function isHitboxInsideSafeZone()
+local function getDistanceToSafeZone()
 	local safeZones = workspace:FindFirstChild("thirdBossSafeZones", true)
 	if not safeZones then
-		return false
+		return nil, false
 	end
 
 	-- Check hitbox position, fallback to HumanoidRootPart
@@ -567,53 +578,87 @@ local function isHitboxInsideSafeZone()
 		if root then
 			checkPos = root.Position
 		else
-			return false
+			return nil, false
 		end
 	end
 
-	-- Test all parts inside thirdBossSafeZones
+	local minDistance = math.huge
+	local isInside = false
+
 	local zoneParts = safeZones:IsA("BasePart") and {safeZones} or safeZones:GetDescendants()
 	for _, part in ipairs(zoneParts) do
 		if part:IsA("BasePart") then
 			local localPos = part.CFrame:PointToObjectSpace(checkPos)
 			local half = part.Size / 2
 
-			-- Allow a slight 2-stud buffer around the zone boundary
+			-- Check if inside the bounding box
 			if math.abs(localPos.X) <= (half.X + 2)
 				and math.abs(localPos.Y) <= (half.Y + 2)
 				and math.abs(localPos.Z) <= (half.Z + 2) then
-				return true
+				isInside = true
+				minDistance = 0
+				break
+			end
+
+			-- Calculate closest point on the part's surface
+			local clamped = Vector3.new(
+				math.clamp(localPos.X, -half.X, half.X),
+				math.clamp(localPos.Y, -half.Y, half.Y),
+				math.clamp(localPos.Z, -half.Z, half.Z)
+			)
+			local worldClosest = part.CFrame:PointToWorldSpace(clamped)
+			local dist = (checkPos - worldClosest).Magnitude
+
+			if dist < minDistance then
+				minDistance = dist
 			end
 		end
 	end
 
-	return false
+	if minDistance == math.huge then
+		return nil, false
+	end
+
+	return minDistance, isInside
 end
 
 --==================================================
--- AUTO CLICK LOOP WITH ZONE AUTO-TRIGGER
+-- AUTO CLICK LOOP WITH LATCHING SAFE ZONE TRIGGER
 --==================================================
 
 task.spawn(function()
 	while ScreenGui.Parent do
-		-- Automatic Zone Trigger
-		if AutoTriggerSafeZone then
-			local inside = isHitboxInsideSafeZone()
-			if inside ~= AutoClickEnabled then
-				AutoClickEnabled = inside
+		local dist, inside = getDistanceToSafeZone()
+
+		-- Update Distance and Status Labels
+		if dist == nil then
+			ZoneDistLabel.Text = "Safe Zone: Not Found"
+			ZoneDistLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+			ZoneStatusLabel.Text = "Zone: UNKNOWN"
+			ZoneStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+		elseif inside then
+			ZoneDistLabel.Text = "Zone Dist: 0 studs (INSIDE)"
+			ZoneDistLabel.TextColor3 = Color3.fromRGB(50, 220, 80)
+			ZoneStatusLabel.Text = "Zone: INSIDE (Active)"
+			ZoneStatusLabel.TextColor3 = Color3.fromRGB(50, 220, 80)
+
+			-- Turn ON when entering the safe zone
+			if AutoTriggerSafeZone and not AutoClickEnabled then
+				AutoClickEnabled = true
 				UpdateAutoClickUI()
 			end
+		else
+			ZoneDistLabel.Text = string.format("Zone Dist: %.1f studs", dist)
+			ZoneDistLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 
-			if inside then
-				ZoneStatusLabel.Text = "Zone: INSIDE (Clicking)"
-				ZoneStatusLabel.TextColor3 = Color3.fromRGB(50, 220, 80)
+			if AutoClickEnabled then
+				ZoneStatusLabel.Text = "Zone: OUTSIDE (Latched ON)"
+				ZoneStatusLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
 			else
-				ZoneStatusLabel.Text = "Zone: OUTSIDE"
+				ZoneStatusLabel.Text = "Zone: OUTSIDE (Click: OFF)"
 				ZoneStatusLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
 			end
-		else
-			ZoneStatusLabel.Text = "Zone: AUTO DISABLED"
-			ZoneStatusLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+			-- Note: It does NOT turn off when outside; it stays ON until manually toggled
 		end
 
 		-- Click Execution
