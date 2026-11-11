@@ -10,6 +10,7 @@ end
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -32,6 +33,12 @@ local FollowDistance = 10
 local wasTargetAlive = nil
 local resettingCharacter = false
 
+-- Auto Clicker Settings
+local AutoClickEnabled = false
+local AutoTriggerSafeZone = true -- Automatically turns on inside "thirdBossSafeZones"
+local AutoClickDelay = 0.05
+local LockedPos = Vector2.new(605, 405) -- Default target: 605, 405
+
 --==================================================
 -- KEY PRESS
 --==================================================
@@ -48,15 +55,34 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SoulDrainAutomation"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Target Marker (Visual indicator for locked position)
+local Marker = Instance.new("Frame")
+Marker.Name = "AutoClickMarker"
+Marker.Size = UDim2.fromOffset(12, 12)
+Marker.AnchorPoint = Vector2.new(0.5, 0.5)
+Marker.Position = UDim2.fromOffset(LockedPos.X, LockedPos.Y)
+Marker.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+Marker.BackgroundTransparency = 0.2
+Marker.Visible = true
+Marker.Active = false
+Marker.Parent = ScreenGui
+
+local MarkerCorner = Instance.new("UICorner")
+MarkerCorner.CornerRadius = UDim.new(1, 0)
+MarkerCorner.Parent = Marker
+
+local MarkerStroke = Instance.new("UIStroke")
+MarkerStroke.Color = Color3.fromRGB(255, 255, 255)
+MarkerStroke.Thickness = 1.5
+MarkerStroke.Parent = Marker
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 180, 0, 370)
-
--- Same general left-side location
+MainFrame.Size = UDim2.new(0, 180, 0, 500)
 MainFrame.Position = UDim2.new(0.02, 0, 0.02, 100)
-
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
@@ -170,7 +196,6 @@ ModeButton.MouseButton1Click:Connect(function()
 	else
 		Mode = "Both"
 	end
-
 	updateMode()
 end)
 
@@ -199,7 +224,6 @@ TriggerButton.MouseButton1Click:Connect(function()
 	else
 		TriggerMode = "Manual"
 	end
-
 	updateTriggerMode()
 end)
 
@@ -235,7 +259,6 @@ DelayInput.Parent = MainFrame
 
 DelayInput.FocusLost:Connect(function()
 	local value = tonumber(DelayInput.Text)
-
 	if value and value >= 0 then
 		Q_E_Delay = value
 		DelayInput.Text = tostring(Q_E_Delay)
@@ -245,12 +268,12 @@ DelayInput.FocusLost:Connect(function()
 end)
 
 --==================================================
--- DIVIDER
+-- DIVIDER 1
 --==================================================
 
 local Divider = Instance.new("Frame")
 Divider.Size = UDim2.new(1, -10, 0, 1)
-Divider.Position = UDim2.new(0, 5, 0, 172)
+Divider.Position = UDim2.new(0, 5, 0, 168)
 Divider.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 Divider.BorderSizePixel = 0
 Divider.Parent = MainFrame
@@ -260,41 +283,29 @@ Divider.Parent = MainFrame
 --==================================================
 
 local TeleportTitle = Instance.new("TextLabel")
-TeleportTitle.Size = UDim2.new(1, 0, 0, 25)
-TeleportTitle.Position = UDim2.new(0, 0, 0, 179)
+TeleportTitle.Size = UDim2.new(1, 0, 0, 22)
+TeleportTitle.Position = UDim2.new(0, 0, 0, 172)
 TeleportTitle.BackgroundTransparency = 1
-TeleportTitle.Text = "Teleport"
+TeleportTitle.Text = "Teleport [G]"
 TeleportTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportTitle.TextSize = 14
+TeleportTitle.TextSize = 13
 TeleportTitle.Font = Enum.Font.SourceSansBold
 TeleportTitle.Parent = MainFrame
 
--- Keybind
-local KeybindLabel = Instance.new("TextLabel")
-KeybindLabel.Size = UDim2.new(1, 0, 0, 22)
-KeybindLabel.Position = UDim2.new(0, 0, 0, 203)
-KeybindLabel.BackgroundTransparency = 1
-KeybindLabel.Text = "Keybind: G"
-KeybindLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-KeybindLabel.TextSize = 13
-KeybindLabel.Font = Enum.Font.SourceSansBold
-KeybindLabel.Parent = MainFrame
-
--- Teleport ON/OFF
 local TeleportToggle = Instance.new("TextButton")
-TeleportToggle.Size = UDim2.new(1, -10, 0, 32)
-TeleportToggle.Position = UDim2.new(0, 5, 0, 227)
+TeleportToggle.Size = UDim2.new(1, -10, 0, 28)
+TeleportToggle.Position = UDim2.new(0, 5, 0, 196)
 TeleportToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeleportToggle.TextSize = 14
+TeleportToggle.TextSize = 13
 TeleportToggle.Font = Enum.Font.SourceSansBold
 TeleportToggle.Parent = MainFrame
 
 local function UpdateTeleportToggle()
 	if TeleportEnabled then
-		TeleportToggle.Text = "ON"
+		TeleportToggle.Text = "Teleport: ON"
 		TeleportToggle.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
 	else
-		TeleportToggle.Text = "OFF"
+		TeleportToggle.Text = "Teleport: OFF"
 		TeleportToggle.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
 	end
 end
@@ -305,33 +316,219 @@ local function ToggleTeleport()
 end
 
 TeleportToggle.MouseButton1Click:Connect(ToggleTeleport)
-
 UpdateTeleportToggle()
 
--- Interval
-local IntervalLabel = Instance.new("TextLabel")
-IntervalLabel.Size = UDim2.new(1, 0, 0, 25)
-IntervalLabel.Position = UDim2.new(0, 0, 0, 264)
-IntervalLabel.BackgroundTransparency = 1
-IntervalLabel.Text = "Teleport Interval: " .. TeleportInterval .. "s"
-IntervalLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-IntervalLabel.TextSize = 13
-IntervalLabel.Font = Enum.Font.SourceSans
-IntervalLabel.Parent = MainFrame
-
--- Target
 local TargetLabel = Instance.new("TextLabel")
-TargetLabel.Size = UDim2.new(1, 0, 0, 20)
-TargetLabel.Position = UDim2.new(0, 0, 0, 292)
+TargetLabel.Size = UDim2.new(1, 0, 0, 18)
+TargetLabel.Position = UDim2.new(0, 0, 0, 228)
 TargetLabel.BackgroundTransparency = 1
 TargetLabel.Text = "Target: " .. TargetName
-TargetLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TargetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 TargetLabel.TextSize = 12
 TargetLabel.Font = Enum.Font.SourceSans
 TargetLabel.Parent = MainFrame
 
 --==================================================
--- G KEYBIND
+-- DIVIDER 2
+--==================================================
+
+local Divider2 = Instance.new("Frame")
+Divider2.Size = UDim2.new(1, -10, 0, 1)
+Divider2.Position = UDim2.new(0, 5, 0, 252)
+Divider2.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Divider2.BorderSizePixel = 0
+Divider2.Parent = MainFrame
+
+--==================================================
+-- AUTO CLICKER SECTION
+--==================================================
+
+local AutoClickTitle = Instance.new("TextLabel")
+AutoClickTitle.Size = UDim2.new(1, 0, 0, 22)
+AutoClickTitle.Position = UDim2.new(0, 0, 0, 256)
+AutoClickTitle.BackgroundTransparency = 1
+AutoClickTitle.Text = "Auto Clicker [H]"
+AutoClickTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoClickTitle.TextSize = 13
+AutoClickTitle.Font = Enum.Font.SourceSansBold
+AutoClickTitle.Parent = MainFrame
+
+local AutoClickToggleBtn = Instance.new("TextButton")
+AutoClickToggleBtn.Size = UDim2.new(0.5, -8, 0, 26)
+AutoClickToggleBtn.Position = UDim2.new(0, 5, 0, 280)
+AutoClickToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoClickToggleBtn.TextSize = 12
+AutoClickToggleBtn.Font = Enum.Font.SourceSansBold
+AutoClickToggleBtn.Parent = MainFrame
+
+-- Auto Trigger Toggle Button (Safe Zone Detection)
+local AutoTriggerBtn = Instance.new("TextButton")
+AutoTriggerBtn.Size = UDim2.new(0.5, -8, 0, 26)
+AutoTriggerBtn.Position = UDim2.new(0.5, 3, 0, 280)
+AutoTriggerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoTriggerBtn.TextSize = 11
+AutoTriggerBtn.Font = Enum.Font.SourceSansBold
+AutoTriggerBtn.Parent = MainFrame
+
+local function UpdateAutoTriggerUI()
+	if AutoTriggerSafeZone then
+		AutoTriggerBtn.Text = "Zone Auto: ON"
+		AutoTriggerBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 180)
+	else
+		AutoTriggerBtn.Text = "Zone Auto: OFF"
+		AutoTriggerBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	end
+end
+
+AutoTriggerBtn.MouseButton1Click:Connect(function()
+	AutoTriggerSafeZone = not AutoTriggerSafeZone
+	UpdateAutoTriggerUI()
+end)
+UpdateAutoTriggerUI()
+
+local function UpdateAutoClickUI()
+	if AutoClickEnabled then
+		AutoClickToggleBtn.Text = "Click: ON"
+		AutoClickToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 170, 70)
+	else
+		AutoClickToggleBtn.Text = "Click: OFF"
+		AutoClickToggleBtn.BackgroundColor3 = Color3.fromRGB(170, 50, 50)
+	end
+end
+
+local function ToggleAutoClick()
+	AutoClickEnabled = not AutoClickEnabled
+	UpdateAutoClickUI()
+end
+
+AutoClickToggleBtn.MouseButton1Click:Connect(ToggleAutoClick)
+UpdateAutoClickUI()
+
+-- X and Y Input Row
+local XBox = Instance.new("TextBox")
+XBox.Size = UDim2.new(0.5, -8, 0, 22)
+XBox.Position = UDim2.new(0, 5, 0, 310)
+XBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+XBox.BorderSizePixel = 0
+XBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+XBox.PlaceholderText = "Target X"
+XBox.Text = tostring(LockedPos.X)
+XBox.TextSize = 12
+XBox.Font = Enum.Font.SourceSans
+XBox.Parent = MainFrame
+
+local YBox = Instance.new("TextBox")
+YBox.Size = UDim2.new(0.5, -8, 0, 22)
+YBox.Position = UDim2.new(0.5, 3, 0, 310)
+YBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+YBox.BorderSizePixel = 0
+YBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+YBox.PlaceholderText = "Target Y"
+YBox.Text = tostring(LockedPos.Y)
+YBox.TextSize = 12
+YBox.Font = Enum.Font.SourceSans
+YBox.Parent = MainFrame
+
+-- Target Coordinates Status
+local TargetStatus = Instance.new("TextLabel")
+TargetStatus.Size = UDim2.new(1, 0, 0, 16)
+TargetStatus.Position = UDim2.new(0, 0, 0, 336)
+TargetStatus.BackgroundTransparency = 1
+TargetStatus.Text = string.format("Locked: (%d, %d)", LockedPos.X, LockedPos.Y)
+TargetStatus.TextColor3 = Color3.fromRGB(255, 120, 120)
+TargetStatus.TextSize = 11
+TargetStatus.Font = Enum.Font.SourceSans
+TargetStatus.Parent = MainFrame
+
+local function SetLockedPosition(vec2)
+	LockedPos = vec2
+	if vec2 then
+		XBox.Text = tostring(math.floor(vec2.X))
+		YBox.Text = tostring(math.floor(vec2.Y))
+		TargetStatus.Text = string.format("Locked: (%d, %d)", vec2.X, vec2.Y)
+		TargetStatus.TextColor3 = Color3.fromRGB(255, 120, 120)
+
+		Marker.Position = UDim2.fromOffset(vec2.X, vec2.Y)
+		Marker.Visible = true
+	else
+		XBox.Text = ""
+		YBox.Text = ""
+		TargetStatus.Text = "Mode: Following Mouse"
+		TargetStatus.TextColor3 = Color3.fromRGB(120, 200, 120)
+		Marker.Visible = false
+	end
+end
+
+-- Lock Mouse / Follow Mouse Row
+local LockMouseBtn = Instance.new("TextButton")
+LockMouseBtn.Size = UDim2.new(0.5, -8, 0, 24)
+LockMouseBtn.Position = UDim2.new(0, 5, 0, 356)
+LockMouseBtn.BackgroundColor3 = Color3.fromRGB(45, 110, 180)
+LockMouseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+LockMouseBtn.Text = "Lock Mouse [J]"
+LockMouseBtn.TextSize = 11
+LockMouseBtn.Font = Enum.Font.SourceSansBold
+LockMouseBtn.Parent = MainFrame
+
+local FollowMouseBtn = Instance.new("TextButton")
+FollowMouseBtn.Size = UDim2.new(0.5, -8, 0, 24)
+FollowMouseBtn.Position = UDim2.new(0.5, 3, 0, 356)
+FollowMouseBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+FollowMouseBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+FollowMouseBtn.Text = "Follow Mouse"
+FollowMouseBtn.TextSize = 11
+FollowMouseBtn.Font = Enum.Font.SourceSans
+FollowMouseBtn.Parent = MainFrame
+
+LockMouseBtn.MouseButton1Click:Connect(function()
+	SetLockedPosition(UserInputService:GetMouseLocation())
+end)
+
+FollowMouseBtn.MouseButton1Click:Connect(function()
+	SetLockedPosition(nil)
+end)
+
+local function OnCoordInput()
+	local x = tonumber(XBox.Text)
+	local y = tonumber(YBox.Text)
+	if x and y then
+		SetLockedPosition(Vector2.new(x, y))
+	end
+end
+XBox.FocusLost:Connect(OnCoordInput)
+YBox.FocusLost:Connect(OnCoordInput)
+
+-- Live Safe Zone Status Indicator
+local ZoneStatusLabel = Instance.new("TextLabel")
+ZoneStatusLabel.Size = UDim2.new(1, 0, 0, 16)
+ZoneStatusLabel.Position = UDim2.new(0, 0, 0, 384)
+ZoneStatusLabel.BackgroundTransparency = 1
+ZoneStatusLabel.Text = "Zone: OUTSIDE"
+ZoneStatusLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+ZoneStatusLabel.TextSize = 11
+ZoneStatusLabel.Font = Enum.Font.SourceSansBold
+ZoneStatusLabel.Parent = MainFrame
+
+-- Live Cursor Position Label
+local MouseLiveLabel = Instance.new("TextLabel")
+MouseLiveLabel.Size = UDim2.new(1, 0, 0, 16)
+MouseLiveLabel.Position = UDim2.new(0, 0, 0, 402)
+MouseLiveLabel.BackgroundTransparency = 1
+MouseLiveLabel.Text = "Mouse: (0, 0)"
+MouseLiveLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+MouseLiveLabel.TextSize = 11
+MouseLiveLabel.Font = Enum.Font.SourceSans
+MouseLiveLabel.Parent = MainFrame
+
+UserInputService.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		local pos = UserInputService:GetMouseLocation()
+		MouseLiveLabel.Text = string.format("Mouse: (%d, %d)", pos.X, pos.Y)
+	end
+end)
+
+--==================================================
+-- KEYBINDS (G, H, J)
 --==================================================
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -341,6 +538,95 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
 	if input.KeyCode == Enum.KeyCode.G then
 		ToggleTeleport()
+	elseif input.KeyCode == Enum.KeyCode.H then
+		ToggleAutoClick()
+	elseif input.KeyCode == Enum.KeyCode.J then
+		SetLockedPosition(UserInputService:GetMouseLocation())
+	end
+end)
+
+--==================================================
+-- THIRD BOSS SAFE ZONE CHECK
+--==================================================
+
+local hitbox -- Reference to player's visual hitbox
+
+local function isHitboxInsideSafeZone()
+	local safeZones = workspace:FindFirstChild("thirdBossSafeZones", true)
+	if not safeZones then
+		return false
+	end
+
+	-- Check hitbox position, fallback to HumanoidRootPart
+	local checkPos
+	if hitbox and hitbox.Parent then
+		checkPos = hitbox.Position
+	else
+		local char = LocalPlayer.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		if root then
+			checkPos = root.Position
+		else
+			return false
+		end
+	end
+
+	-- Test all parts inside thirdBossSafeZones
+	local zoneParts = safeZones:IsA("BasePart") and {safeZones} or safeZones:GetDescendants()
+	for _, part in ipairs(zoneParts) do
+		if part:IsA("BasePart") then
+			local localPos = part.CFrame:PointToObjectSpace(checkPos)
+			local half = part.Size / 2
+
+			-- Allow a slight 2-stud buffer around the zone boundary
+			if math.abs(localPos.X) <= (half.X + 2)
+				and math.abs(localPos.Y) <= (half.Y + 2)
+				and math.abs(localPos.Z) <= (half.Z + 2) then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+--==================================================
+-- AUTO CLICK LOOP WITH ZONE AUTO-TRIGGER
+--==================================================
+
+task.spawn(function()
+	while ScreenGui.Parent do
+		-- Automatic Zone Trigger
+		if AutoTriggerSafeZone then
+			local inside = isHitboxInsideSafeZone()
+			if inside ~= AutoClickEnabled then
+				AutoClickEnabled = inside
+				UpdateAutoClickUI()
+			end
+
+			if inside then
+				ZoneStatusLabel.Text = "Zone: INSIDE (Clicking)"
+				ZoneStatusLabel.TextColor3 = Color3.fromRGB(50, 220, 80)
+			else
+				ZoneStatusLabel.Text = "Zone: OUTSIDE"
+				ZoneStatusLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+			end
+		else
+			ZoneStatusLabel.Text = "Zone: AUTO DISABLED"
+			ZoneStatusLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+		end
+
+		-- Click Execution
+		if AutoClickEnabled then
+			local target = LockedPos or UserInputService:GetMouseLocation()
+			VirtualInputManager:SendMouseButtonEvent(target.X, target.Y, 0, true, game, 0)
+			task.wait(0.01)
+			VirtualInputManager:SendMouseButtonEvent(target.X, target.Y, 0, false, game, 0)
+
+			task.wait(AutoClickDelay)
+		else
+			task.wait(0.05)
+		end
 	end
 end)
 
@@ -348,9 +634,8 @@ end)
 -- SOUL DRAIN LOOP
 --==================================================
 
-
 local function findGeyser()
-    return workspace:FindFirstChild("Blade Barrage Sword", true)
+	return workspace:FindFirstChild("Blade Barrage Sword", true)
 end
 
 local qPressed = false
@@ -358,25 +643,17 @@ local ePressed = false
 
 local function isInsideGroundAura()
 	local groundAura = workspace:FindFirstChild("groundAura", true)
-
-	if not groundAura then
-		return false
-	end
+	if not groundAura then return false end
 
 	local MyCharacter = LocalPlayer.Character
 	local MyRoot = MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
+	if not MyRoot then return false end
 
-	if not MyRoot then
-		return false
-	end
-
-	-- groundAura must be a BasePart
 	if groundAura:IsA("BasePart") then
 		local localPosition = groundAura.CFrame:PointToObjectSpace(MyRoot.Position)
 		local halfSize = groundAura.Size / 2
 
-		return
-			math.abs(localPosition.X) <= halfSize.X
+		return math.abs(localPosition.X) <= halfSize.X
 			and math.abs(localPosition.Y) <= halfSize.Y
 			and math.abs(localPosition.Z) <= halfSize.Z
 	end
@@ -388,19 +665,13 @@ local TARGET_AURA_COLOR = Color3.fromRGB(211, 85, 85)
 
 local function isTargetInsideGroundAura()
 	local target = Players:FindFirstChild("ANiceUser52")
-
-	if not target then
-		return false
-	end
+	if not target then return false end
 
 	local character = target.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root then return false end
 
-	if not root then
-		return false
-	end
-
-		for _, aura in ipairs(workspace:GetChildren()) do
+	for _, aura in ipairs(workspace:GetChildren()) do
 		if aura.Name == "groundAura"
 			and aura:IsA("BasePart")
 			and aura.Color == TARGET_AURA_COLOR then
@@ -421,49 +692,27 @@ end
 
 task.spawn(function()
 	while true do
-
 		if Enabled then
-
-			--==================================================
-			-- AUTOMATIC
-			--==================================================
-
 			if TriggerMode == "Automatic" then
-
 				if not running then
 					running = true
-
 					if Mode == "Both" then
-
 						pressKey(Enum.KeyCode.Q)
 						pressKey(Enum.KeyCode.E)
-
 					elseif Mode == "Single" then
-
 						pressKey(Enum.KeyCode.Q)
-
 						task.wait(Q_E_Delay)
-
 						if Enabled then
 							pressKey(Enum.KeyCode.E)
 						end
 					end
-
 					running = false
 				end
-
-			--==================================================
-			-- MANUAL
-			--==================================================
-
 			elseif TriggerMode == "Manual" then
-
 				local insideGroundAura = isInsideGroundAura()
 				local geyserObject = findGeyser()
-                                local geyserFound = geyserObject ~= nil
+				local geyserFound = geyserObject ~= nil
 
-
-				-- Q when ANiceUser52 enters the matching groundAura
 				local targetInsideAura = isTargetInsideGroundAura()
 
 				if targetInsideAura and not qPressed then
@@ -471,25 +720,20 @@ task.spawn(function()
 					qPressed = true
 				end
 
-				-- Reset Q trigger after target leaves the matching aura
 				if not targetInsideAura then
 					qPressed = false
 				end
 
-
-				-- E when Soul Drain appears
 				if geyserFound and not ePressed then
 					pressKey(Enum.KeyCode.E)
 					ePressed = true
 				end
 
-				-- Reset E trigger after Soul Drain disappears
 				if not geyserFound then
 					ePressed = false
 				end
 			end
 		else
-			-- Reset manual trigger states when disabled
 			qPressed = false
 			ePressed = false
 		end
@@ -502,197 +746,158 @@ end)
 -- AUTOMATIC TELEPORT / FOLLOW LOOP
 --==================================================
 
-
 task.spawn(function()
-    while task.wait(TeleportInterval) do
-        if not TeleportEnabled then
-            wasTargetAlive = nil
-            continue
-        end
+	while task.wait(TeleportInterval) do
+		if not TeleportEnabled then
+			wasTargetAlive = nil
+			continue
+		end
 
-        local Target = Players:FindFirstChild(TargetName)
-        if not Target then
-            wasTargetAlive = nil
-            continue
-        end
+		local Target = Players:FindFirstChild(TargetName)
+		if not Target then
+			wasTargetAlive = nil
+			continue
+		end
 
-        local TargetCharacter = Target.Character
-        local TargetHumanoid = TargetCharacter
-            and TargetCharacter:FindFirstChildOfClass("Humanoid")
-        local TargetRoot = TargetCharacter
-            and TargetCharacter:FindFirstChild("HumanoidRootPart")
+		local TargetCharacter = Target.Character
+		local TargetHumanoid = TargetCharacter and TargetCharacter:FindFirstChildOfClass("Humanoid")
+		local TargetRoot = TargetCharacter and TargetCharacter:FindFirstChild("HumanoidRootPart")
 
-        local targetAlive = TargetHumanoid ~= nil
-            and TargetHumanoid.Health > 0
+		local targetAlive = TargetHumanoid ~= nil and TargetHumanoid.Health > 0
 
-        -- Preserve the existing target-death reset behavior
-        if wasTargetAlive == true and not targetAlive then
-            if not resettingCharacter then
-                resettingCharacter = true
+		if wasTargetAlive == true and not targetAlive then
+			if not resettingCharacter then
+				resettingCharacter = true
 
-                local MyCharacter = LocalPlayer.Character
-                local MyHumanoid = MyCharacter
-                    and MyCharacter:FindFirstChildOfClass("Humanoid")
+				local MyCharacter = LocalPlayer.Character
+				local MyHumanoid = MyCharacter and MyCharacter:FindFirstChildOfClass("Humanoid")
+				if MyHumanoid and MyHumanoid.Health > 0 then
+					MyHumanoid.Health = 0
+				end
 
-                if MyHumanoid and MyHumanoid.Health > 0 then
-                    MyHumanoid.Health = 0
-                end
+				task.delay(3, function()
+					resettingCharacter = false
+				end)
+			end
+		end
 
-                task.delay(3, function()
-                    resettingCharacter = false
-                end)
-            end
-        end
+		wasTargetAlive = targetAlive
 
-        wasTargetAlive = targetAlive
+		if targetAlive and TargetRoot then
+			local MyCharacter = LocalPlayer.Character
+			local MyRoot = MyCharacter and MyCharacter:FindFirstChild("HumanoidRootPart")
+			local MyHumanoid = MyCharacter and MyCharacter:FindFirstChildOfClass("Humanoid")
 
-        if targetAlive and TargetRoot then
-            local MyCharacter = LocalPlayer.Character
-            local MyRoot = MyCharacter
-                and MyCharacter:FindFirstChild("HumanoidRootPart")
-            local MyHumanoid = MyCharacter
-                and MyCharacter:FindFirstChildOfClass("Humanoid")
+			if MyRoot and MyHumanoid and MyHumanoid.Health > 0 then
+				local distance = (MyRoot.Position - TargetRoot.Position).Magnitude
 
-            if MyRoot and MyHumanoid and MyHumanoid.Health > 0 then
-                local distance = (MyRoot.Position - TargetRoot.Position).Magnitude
-
-                if distance > FollowDistance then
-                    -- Walk toward the target while too far away
-                    MyHumanoid:MoveTo(TargetRoot.Position)
-                else
-                    -- Teleport directly when close enough
-                    MyRoot.CFrame = TargetRoot.CFrame
-                    MyHumanoid:MoveTo(MyRoot.Position)
-                end
-            end
-        end
-    end
+				if distance > FollowDistance then
+					MyHumanoid:MoveTo(TargetRoot.Position)
+				else
+					MyRoot.CFrame = TargetRoot.CFrame
+					MyHumanoid:MoveTo(MyRoot.Position)
+				end
+			end
+		end
+	end
 end)
 
+--==================================================
+-- HITBOX AND REWARD RESETS
+--==================================================
+
 print("Hitbox script started")
-
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
 
 local HITBOX_DIAMETER = 10
 local HITBOX_HEIGHT = 6
 
-local MOVE_DISTANCE = 15
-local MOVE_COOLDOWN = 1
-
-local hitbox
-local isMovingAway = false
 local lastDetected = false
-
 local targetPart = workspace:FindFirstChild("dailyRewardTouchPart", true)
 
 if not targetPart then
-    warn("dailyRewardTouchPart not found; hitbox GUI will still load.")
+	warn("dailyRewardTouchPart not found; hitbox GUI will still load.")
 end
 
--- Create the visual hitbox
 local function setupCharacter(character)
-    local root = character:WaitForChild("HumanoidRootPart")
+	local root = character:WaitForChild("HumanoidRootPart")
 
-    local old = character:FindFirstChild("VisualHitbox")
-    if old then
-        old:Destroy()
-    end
+	local old = character:FindFirstChild("VisualHitbox")
+	if old then
+		old:Destroy()
+	end
 
-    local part = Instance.new("Part")
-    part.Name = "VisualHitbox"
-    part.Shape = Enum.PartType.Cylinder
-    part.Size = Vector3.new(
-        HITBOX_HEIGHT,
-        HITBOX_DIAMETER,
-        HITBOX_DIAMETER
-    )
-    part.Color = Color3.fromRGB(255, 140, 0)
-    part.Transparency = 0.65
-    part.Material = Enum.Material.Neon
-    part.CanCollide = false
-    part.CanTouch = false
-    part.CanQuery = false
-    part.Massless = true
-    part.CastShadow = false
-    part.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(90))
-    part.Parent = character
+	local part = Instance.new("Part")
+	part.Name = "VisualHitbox"
+	part.Shape = Enum.PartType.Cylinder
+	part.Size = Vector3.new(HITBOX_HEIGHT, HITBOX_DIAMETER, HITBOX_DIAMETER)
+	part.Color = Color3.fromRGB(255, 140, 0)
+	part.Transparency = 0.65
+	part.Material = Enum.Material.Neon
+	part.CanCollide = false
+	part.CanTouch = false
+	part.CanQuery = false
+	part.Massless = true
+	part.CastShadow = false
+	part.CFrame = root.CFrame * CFrame.Angles(0, 0, math.rad(90))
+	part.Parent = character
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = root
-    weld.Part1 = part
-    weld.Parent = part
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = part
+	weld.Parent = part
 
-    return part
+	return part
 end
 
-local function applySize(size)
-    currentSize = math.clamp(size, MIN_SIZE, MAX_SIZE)
-
-    if hitbox and hitbox.Parent then
-        hitbox.Size = Vector3.new(currentSize, currentSize, currentSize)
-    end
-end
-
-
--- Reset character when hitbox reaches dailyRewardTouchPart
 local isResetting = false
 
 RunService.Heartbeat:Connect(function()
-    if isResetting or not hitbox or not hitbox.Parent then
-        return
-    end
+	if isResetting or not hitbox or not hitbox.Parent then
+		return
+	end
 
-    if not targetPart or not targetPart:IsA("BasePart") then
-        targetPart = workspace:FindFirstChild("dailyRewardTouchPart", true)
-        return
-    end
+	if not targetPart or not targetPart:IsA("BasePart") then
+		targetPart = workspace:FindFirstChild("dailyRewardTouchPart", true)
+		return
+	end
 
-    local character = player.Character
-    local humanoid = character
-        and character:FindFirstChildOfClass("Humanoid")
+	local character = LocalPlayer.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
+		return
+	end
 
-    if not humanoid or humanoid.Health <= 0 then
-        return
-    end
+	local localPos = targetPart.CFrame:PointToObjectSpace(hitbox.Position)
+	local half = targetPart.Size / 2
 
-    -- Closest point on dailyRewardTouchPart
-    local localPos = targetPart.CFrame:PointToObjectSpace(hitbox.Position)
-    local half = targetPart.Size / 2
+	local closest = Vector3.new(
+		math.clamp(localPos.X, -half.X, half.X),
+		math.clamp(localPos.Y, -half.Y, half.Y),
+		math.clamp(localPos.Z, -half.Z, half.Z)
+	)
 
-    local closest = Vector3.new(
-        math.clamp(localPos.X, -half.X, half.X),
-        math.clamp(localPos.Y, -half.Y, half.Y),
-        math.clamp(localPos.Z, -half.Z, half.Z)
-    )
+	closest = targetPart.CFrame:PointToWorldSpace(closest)
 
-    closest = targetPart.CFrame:PointToWorldSpace(closest)
+	local distance = (hitbox.Position - closest).Magnitude
+	local range = hitbox.Size.Magnitude / 2
 
-    local distance = (hitbox.Position - closest).Magnitude
-    local range = hitbox.Size.Magnitude / 2
+	if distance <= range then
+		isResetting = true
+		humanoid.Health = 0
 
-    if distance <= range then
-        isResetting = true
-        humanoid.Health = 0
-
-        task.delay(2, function()
-            isResetting = false
-        end)
-    end
+		task.delay(2, function()
+			isResetting = false
+		end)
+	end
 end)
 
--- Character respawn handling
 local function onCharacterAdded(character)
-    hitbox = setupCharacter(character)
-    valueLabel.Text = "Diameter: 10 | Height: 6"
-    lastDetected = false
+	hitbox = setupCharacter(character)
+	lastDetected = false
 end
 
-player.CharacterAdded:Connect(onCharacterAdded)
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
 
-if player.Character then
-    onCharacterAdded(player.Character)
+if LocalPlayer.Character then
+	onCharacterAdded(LocalPlayer.Character)
 end
