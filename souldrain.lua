@@ -35,7 +35,7 @@ local resettingCharacter = false
 
 -- Auto Clicker Settings
 local AutoClickEnabled = false
-local AutoTriggerSafeZone = true -- Auto-triggers ON when entering thirdBossSafeZones
+local AutoTriggerSafeZone = true -- Auto-triggers ON when entering thirdBossSafeZones OR dying
 local AutoClickDelay = 0.05
 local LockedPos = Vector2.new(605, 405) -- Default target: 605, 405
 
@@ -361,7 +361,7 @@ AutoClickToggleBtn.TextSize = 12
 AutoClickToggleBtn.Font = Enum.Font.SourceSansBold
 AutoClickToggleBtn.Parent = MainFrame
 
--- Auto Trigger Toggle Button (Safe Zone Detection)
+-- Auto Trigger Toggle Button (Safe Zone & Death Detection)
 local AutoTriggerBtn = Instance.new("TextButton")
 AutoTriggerBtn.Size = UDim2.new(0.5, -8, 0, 26)
 AutoTriggerBtn.Position = UDim2.new(0.5, 3, 0, 280)
@@ -623,19 +623,35 @@ local function getDistanceToSafeZone()
 end
 
 --==================================================
--- AUTO CLICK LOOP WITH LATCHING SAFE ZONE TRIGGER
+-- AUTO CLICK LOOP WITH LATCHING SAFE ZONE & DEATH TRIGGER
 --==================================================
 
 task.spawn(function()
 	while ScreenGui.Parent do
 		local dist, inside = getDistanceToSafeZone()
 
+		-- Check player character health
+		local char = LocalPlayer.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		local isDead = hum ~= nil and hum.Health <= 0
+
+		-- If player dies before reaching or outside the safe zone: latch auto-clicker ON
+		if isDead and AutoTriggerSafeZone and not AutoClickEnabled then
+			AutoClickEnabled = true
+			UpdateAutoClickUI()
+		end
+
 		-- Update Distance and Status Labels
 		if dist == nil then
 			ZoneDistLabel.Text = "Safe Zone: Not Found"
 			ZoneDistLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-			ZoneStatusLabel.Text = "Zone: UNKNOWN"
-			ZoneStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+			ZoneStatusLabel.Text = isDead and "Status: DIED (Latched ON)" or "Zone: UNKNOWN"
+			ZoneStatusLabel.TextColor3 = isDead and Color3.fromRGB(255, 80, 80) or Color3.fromRGB(150, 150, 150)
+		elseif isDead then
+			ZoneDistLabel.Text = string.format("Zone Dist: %.1f studs (DEAD)", dist)
+			ZoneDistLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+			ZoneStatusLabel.Text = "Status: DIED (Latched ON)"
+			ZoneStatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
 		elseif inside then
 			ZoneDistLabel.Text = "Zone Dist: 0 studs (INSIDE)"
 			ZoneDistLabel.TextColor3 = Color3.fromRGB(50, 220, 80)
@@ -939,6 +955,17 @@ end)
 local function onCharacterAdded(character)
 	hitbox = setupCharacter(character)
 	lastDetected = false
+
+	-- Listen for player death to automatically turn on and latch the auto-clicker
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if humanoid then
+		humanoid.Died:Connect(function()
+			if AutoTriggerSafeZone and not AutoClickEnabled then
+				AutoClickEnabled = true
+				UpdateAutoClickUI()
+			end
+		end)
+	end
 end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
