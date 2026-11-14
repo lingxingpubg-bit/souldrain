@@ -37,7 +37,7 @@ local resettingCharacter = false
 local AutoClickEnabled = false
 local AutoTriggerSafeZone = true -- Auto-triggers ON when entering thirdBossSafeZones OR dying
 local AutoClickDelay = 0.05
-local LockedPos = Vector2.new(850, 575) -- Default target: 605, 405
+local LockedPos = Vector2.new(605, 405) -- Default target: 605, 405
 
 --==================================================
 -- KEY PRESS
